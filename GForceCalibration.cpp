@@ -7,27 +7,33 @@ GForceCalibration::GForceCalibration(int xpin, int ypin, int zpin) {
 }
 
 void GForceCalibration::calibrate() {
-  
+  calibrate_model();
 }
 
-void GForceCalibration::takeSample() {
-  
+void GForceCalibration::takeSample(unsigned short nSamp) {
+  take_sample(data + 3*(nSamp%samp_capacity));
+  n_samp++;
 }
 
 void GForceCalibration::setup() {
   //set up the pins
+  //analogReference(EXTERNAL);
+  
   pinMode(m_xpin, INPUT);
   pinMode(m_ypin, INPUT);
   pinMode(m_zpin, INPUT);
   
   //initialize to handle 20 samples
-  samp_capacity = 20;
+  samp_capacity = 6;
   data = (unsigned int*)malloc(samp_capacity*3*sizeof(unsigned int));
+  for (int i = 0; i < samp_capacity*3; i++ ) { 
+    data[i] = 0;
+  }
   
   reset_calibration_matrices();
   
   //initialize beta to something reasonable
-  beta[0] = beta[1] = beta[2] = 512.0;
+  beta[0] = beta[1] = beta[2] = 330.0;
   beta[3] = beta[4] = beta[5] = 0.0095; 
 }
 
@@ -147,12 +153,11 @@ void GForceCalibration::take_sample(unsigned int* sample_out) {
     //now compute the variance onh each axis. Don't divide by 32 -- keep the extra digits
     //around to reduce quantization errors.  So really computing variance*32 here. Also make sure it is > 0.
     for(i=0;i<3; i++) {
-      /*Serial.print("Sum squares: ");
+      Serial.print(F("Sum squares: "));
       Serial.print(sum_squares[i]);
-      Serial.print(" Sum, squared: ");
+      Serial.print(F(" Sum, squared: "));
       Serial.print((sum[i]*sum[i]) /32);
       Serial.println();
-      */
       variance[i] = 1+ sum_squares[i] - (sum[i]*sum[i])/32;
     }
     
@@ -168,12 +173,14 @@ void GForceCalibration::take_sample(unsigned int* sample_out) {
     while(i < SAMPLE_SIZE) {
       
       //take a reading
-      x= analogRead(m_xpin);
+      x = analogRead(m_xpin);
       delay(1);
-      y= analogRead(m_ypin);
+      y = analogRead(m_ypin);
       delay(1);
-      z= analogRead(m_zpin);
+      z = analogRead(m_zpin);
       delay(18); //sample at 50 Hz
+
+      Serial.print(F("readings: ")); Serial.print(x); Serial.print(F(" ")); Serial.print(y); Serial.print(F(" ")); Serial.println(z);
       
       unsigned long dx = x*32 - sum[0];
       unsigned long dy = y*32 - sum[1];
@@ -195,7 +202,7 @@ void GForceCalibration::take_sample(unsigned int* sample_out) {
       
       if(fail_count > success_count && i > 10) {
         //we're failing too much, start over!
-        Serial.println("#Sample fail 1");
+        Serial.println(F("#Sample fail 1"));
         break;
       }       
     }      
@@ -205,6 +212,13 @@ void GForceCalibration::take_sample(unsigned int* sample_out) {
       success = 1;  
     }
   }
+
+  Serial.println("data: ");
+  for (i = 0; i < 3*samp_capacity; i++) {
+    Serial.print(data[i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
 }
 
 void GForceCalibration::calibrate_model() {
@@ -216,23 +230,27 @@ void GForceCalibration::calibrate_model() {
     compute_calibration_matrices();
     find_delta();
     change = delta[0]*delta[0] + delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2] + delta[3]*delta[3]/(beta[3]*beta[3]) + delta[4]*delta[4]/(beta[4]*beta[4]) + delta[5]*delta[5]/(beta[5]*beta[5]); 
-    
+
+    Serial.println( "delta: ");
     for(i=0;i<6;++i) {
+      Serial.print(delta[i]);  
+      Serial.print(F(" "));
       beta[i] -= delta[i];
     }
+
+    Serial.println();
     
     reset_calibration_matrices();
-    /*
-    Serial.print( "Num iterations: ");
+    
+    Serial.print(F("Num iterations: "));
     Serial.print(20 - num_iterations);
-    Serial.print( " change: ");
+    Serial.print(F(" change: "));
     Serial.println( change, 10);
-    */
   }
-  
-  Serial.print("\n");
+  Serial.println();  
   for(i=0;i<6;++i) {
     Serial.print(beta[i], 7);
+    Serial.print(" ");
   }
    Serial.println();  
 }

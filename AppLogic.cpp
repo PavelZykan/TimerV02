@@ -17,19 +17,14 @@ unsigned short AppLogic::currentGz = 0;
 unsigned long AppLogic::lastGreadingsUpdate = 0L;
 char* AppLogic::calibrationMessage;
 bool AppLogic::calibrationRunning = false;
-char* AppLogic::calibrationVarLabel;
 unsigned short AppLogic::calibrationVarIdx = 0;
-unsigned short AppLogic::calibrationVarValue;
 GForceCalibration AppLogic::forceCalibration = GForceCalibration(A1, A2, A3);
 
 void AppLogic::setup() {  
   Serial.begin(9600);
-  
-  AppLogic::calibrationVarLabel = new char[6];
-  
   AppLogic::calibrationMessage = new char[17];
   
-  setupCalibrationMessage(false);  
+  setupCalibrationMessage(false, false);  
 
   pinMode(buzzerPin, OUTPUT);  
   
@@ -40,14 +35,12 @@ void AppLogic::setup() {
   AppButtons::setupButtons();
 
   AppSettings::setupSettings();
+
+  AppLogic::forceCalibration.setup();
 }
 
 void AppLogic::loop() {
   readGforces();
-  
-  if (calibrationRunning) {
-    calibrationIteration();
-  }
   
   if (AppButtons::left.check()) {
     AppMenu::prevScreen();
@@ -86,49 +79,29 @@ void AppLogic::readGforces() {
   currentGz = analogRead(A3);
 }
 
-void AppLogic::incBrowseCalibration() {
-  if (calibrationVarIdx == 5) {
-    calibrationVarIdx = 0;
-  } else {
-    calibrationVarIdx++;
-  }
-  AppLogic::updateCalibrationVal();
-  AppMenu::update();
-}
-
-void AppLogic::decBrowseCalibration() {
-  if (calibrationVarIdx == 0) {
-    calibrationVarIdx = 5;
-  } else {
-    calibrationVarIdx--;
-  }
-  AppLogic::updateCalibrationVal();
-  AppMenu::update();
-}
-
 void AppLogic::toggleCalibration() {
-  calibrationRunning = !calibrationRunning;
-  AppLogic::setupCalibrationMessage(calibrationRunning);
-  AppMenu::update();
-  if (!calibrationRunning){
-    AppSettings::saveSettings();
-  } else {
-    AppSettings::calibrationSettings.xAxisMin = 65000;
-    AppSettings::calibrationSettings.xAxisMax = 0;
-    AppSettings::calibrationSettings.yAxisMin = 65000;
-    AppSettings::calibrationSettings.yAxisMax = 0;
-    AppSettings::calibrationSettings.zAxisMin = 65000;
-    AppSettings::calibrationSettings.zAxisMax = 0;
+  if (!calibrationRunning) {
+    calibrationRunning = true;
+    setupCalibrationMessage(true, false);
+    AppLogic::forceCalibration.takeSample(AppLogic::calibrationVarIdx);
+    AppLogic::calibrationVarIdx++;
+    setupCalibrationMessage(false, false);
+  } else {  
+    setupCalibrationMessage(true, false);
+    AppLogic::forceCalibration.takeSample(AppLogic::calibrationVarIdx);
+    AppLogic::calibrationVarIdx++;    
+    if (AppLogic::calibrationVarIdx >= 6) {
+      AppLogic::calibrationVarIdx = 0;
+      setupCalibrationMessage(false, true);
+      AppLogic::forceCalibration.calibrate();
+      setupCalibrationMessage(false, false);
+      calibrationRunning = false;
+    } else {
+      setupCalibrationMessage(false, false);
+    }
   }
-}
-
-void AppLogic::calibrationIteration() {
-  AppSettings::calibrationSettings.xAxisMin = min(AppSettings::calibrationSettings.xAxisMin, currentGx);
-  AppSettings::calibrationSettings.xAxisMax = max(AppSettings::calibrationSettings.xAxisMax, currentGx);
-  AppSettings::calibrationSettings.yAxisMin = min(AppSettings::calibrationSettings.yAxisMin, currentGy);
-  AppSettings::calibrationSettings.yAxisMax = max(AppSettings::calibrationSettings.yAxisMax, currentGy);
-  AppSettings::calibrationSettings.zAxisMin = min(AppSettings::calibrationSettings.zAxisMin, currentGz);
-  AppSettings::calibrationSettings.zAxisMax = max(AppSettings::calibrationSettings.zAxisMax, currentGz);
+  
+  AppMenu::update();
 }
 
 void AppLogic::startCountdown() {
@@ -210,62 +183,37 @@ void AppLogic::stopBuzzer() {
 
 void AppLogic::updateCalibrationVal() {
   if (calibrationVarIdx == 0) {
-    calibrationVarValue = AppSettings::calibrationSettings.xAxisMin;
-    calibrationVarLabel[0] = 'X';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.xAxisMin;
+    //calibrationVarLabel[0] = 'X';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   } else if (calibrationVarIdx == 1) {
-    calibrationVarValue = AppSettings::calibrationSettings.xAxisMax;
-    calibrationVarLabel[0] = 'X';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.xAxisMax;
+    //calibrationVarLabel[0] = 'X';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   } else if (calibrationVarIdx == 2) {
-    calibrationVarValue = AppSettings::calibrationSettings.yAxisMin;
-    calibrationVarLabel[0] = 'Y';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.yAxisMin;
+    //calibrationVarLabel[0] = 'Y';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   } else if (calibrationVarIdx == 3) {
-    calibrationVarValue = AppSettings::calibrationSettings.yAxisMax;
-    calibrationVarLabel[0] = 'Y';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.yAxisMax;
+    //calibrationVarLabel[0] = 'Y';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   } else if (calibrationVarIdx == 4) {
-    calibrationVarValue = AppSettings::calibrationSettings.zAxisMin;
-    calibrationVarLabel[0] = 'Z';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.zAxisMin;
+    //calibrationVarLabel[0] = 'Z';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'I';calibrationVarLabel[3] = 'N';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   } else if (calibrationVarIdx == 5) {
-    calibrationVarValue = AppSettings::calibrationSettings.zAxisMax;
-    calibrationVarLabel[0] = 'Z';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
+    //calibrationVarValue = AppSettings::calibrationSettings.zAxisMax;
+    //calibrationVarLabel[0] = 'Z';calibrationVarLabel[1] = 'M';calibrationVarLabel[2] = 'A';calibrationVarLabel[3] = 'X';calibrationVarLabel[4] = ' ';calibrationVarLabel[5] = 0;
   }
 }
 
-void AppLogic::setupCalibrationMessage(bool calibrationRunning) {
-  if (calibrationRunning) {
-    calibrationMessage[0] = 'U';
-    calibrationMessage[1] = 'P';
-    calibrationMessage[2] = '/';
-    calibrationMessage[3] = 'D';
-    calibrationMessage[4] = 'O';
-    calibrationMessage[5] = 'W';
-    calibrationMessage[6] = 'N';
-    calibrationMessage[7] = ' ';
-    calibrationMessage[8] = 't';
-    calibrationMessage[9] = 'o';
-    calibrationMessage[10] = ' ';
-    calibrationMessage[11] = 's';
-    calibrationMessage[12] = 't';
-    calibrationMessage[13] = 'o';
-    calibrationMessage[14] = 'p';
-    calibrationMessage[15] = 0;
+void AppLogic::setupCalibrationMessage(bool capturing, bool calibrating) {
+  if (capturing) {
+    calibrationMessage[0] = 'S';calibrationMessage[1] = 't';calibrationMessage[2] = 'e';calibrationMessage[3] = 'p';calibrationMessage[4] = ' ';calibrationMessage[5] = calibrationVarIdx+'1';calibrationMessage[6] = ' ';
+    calibrationMessage[7] = 'h';calibrationMessage[8] = 'o';calibrationMessage[9] = 'l';calibrationMessage[10] = 'd';calibrationMessage[11] = '\0';
+  } else if (calibrating) {
+    calibrationMessage[0] = 'C';calibrationMessage[1] = 'a';calibrationMessage[2] = 'l';calibrationMessage[3] = 'i';calibrationMessage[4] = 'b';calibrationMessage[5] = 'r';
+    calibrationMessage[6] = 'a';calibrationMessage[7] = 't';calibrationMessage[8] = 'i';calibrationMessage[9] = 'n';calibrationMessage[10] = 'g';calibrationMessage[11] = '.';calibrationMessage[12] = '.';calibrationMessage[13] = '.';calibrationMessage[14] = '\0';
   } else {
-    calibrationMessage[0] = 'U';
-    calibrationMessage[1] = 'P';
-    calibrationMessage[2] = '/';
-    calibrationMessage[3] = 'D';
-    calibrationMessage[4] = 'O';
-    calibrationMessage[5] = 'W';
-    calibrationMessage[6] = 'N';
-    calibrationMessage[7] = ' ';
-    calibrationMessage[8] = 't';
-    calibrationMessage[9] = 'o';
-    calibrationMessage[10] = ' ';
-    calibrationMessage[11] = 's';
-    calibrationMessage[12] = 't';
-    calibrationMessage[13] = 'a';
-    calibrationMessage[14] = 'r';
-    calibrationMessage[15] = 't';
-    calibrationMessage[16] = 0;
+    calibrationMessage[0] = 'S';calibrationMessage[1] = 't';calibrationMessage[2] = 'e';calibrationMessage[3] = 'p';calibrationMessage[4] = ' ';calibrationMessage[5] = calibrationVarIdx+'1';calibrationMessage[6] = ' ';
+    calibrationMessage[7] = 'r';calibrationMessage[8] = 'e';calibrationMessage[9] = 'a';calibrationMessage[10] = 'd';calibrationMessage[11] = 'y';calibrationMessage[12] = '\0';
   }
+  AppMenu::update();
 }
 

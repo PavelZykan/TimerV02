@@ -41,10 +41,6 @@ class AppMenu {
     static LiquidLine timerDelayMaxLine2;
     static LiquidScreen timerDelayMaxScreen;
     
-    static LiquidLine gCalibrationViewLine1;
-    static LiquidLine gCalibrationViewLine2;
-    static LiquidScreen gCalibrationViewScreen;
-    
     static LiquidLine gCalibrationSetupLine1;
     static LiquidLine gCalibrationSetupLine2;
     static LiquidScreen gCalibrationSetupScreen;

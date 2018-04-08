@@ -12,6 +12,7 @@ const char string_6[] PROGMEM = "Max: ";
 const char string_7[] PROGMEM = " s";
 const char string_8[] PROGMEM = " ";
 const char string_9[] PROGMEM = "G readings";
+const char string_10[] PROGMEM = "G calibration";
 
 LiquidCrystal_I2C AppMenu::lcd = LiquidCrystal_I2C(0x3F, 16, 2);  // Set the LCD I2C address
 
@@ -32,11 +33,7 @@ LiquidLine AppMenu::timerDelayMaxLine1 = LiquidLine(0, 0, string_4);
 LiquidLine AppMenu::timerDelayMaxLine2 = LiquidLine(0, 1, string_6, AppSettings::buzzerSettings.timerDelayMax, string_7);
 LiquidScreen AppMenu::timerDelayMaxScreen = LiquidScreen(timerDelayMaxLine1, timerDelayMaxLine2);
 
-LiquidLine AppMenu::gCalibrationViewLine1 = LiquidLine(0, 0, string_9);
-LiquidLine AppMenu::gCalibrationViewLine2 = LiquidLine(0, 1, AppLogic::currentGx, string_8, AppLogic::currentGy, string_8, AppLogic::currentGz);
-LiquidScreen AppMenu::gCalibrationViewScreen = LiquidScreen(gCalibrationViewLine1, gCalibrationViewLine2);
-
-LiquidLine AppMenu::gCalibrationSetupLine1 = LiquidLine(0, 0, "G calibration 2");
+LiquidLine AppMenu::gCalibrationSetupLine1 = LiquidLine(0, 0, string_10);
 LiquidLine AppMenu::gCalibrationSetupLine2 = LiquidLine(0, 1, AppLogic::calibrationMessage);
 LiquidScreen AppMenu::gCalibrationSetupScreen = LiquidScreen(gCalibrationSetupLine1, gCalibrationSetupLine2);
 
@@ -64,16 +61,13 @@ void AppMenu::setupMenu() {
   timerDelayMaxLine1.set_asProgmem(1);
   timerDelayMaxLine2.set_asProgmem(1);
   timerDelayMaxLine2.set_asProgmem(3);
-  gCalibrationViewLine1.set_asProgmem(1);
-  gCalibrationViewLine2.set_asProgmem(2);
-  gCalibrationViewLine2.set_asProgmem(4);
+  gCalibrationSetupLine1.set_asProgmem(1);
 
   AppMenu::menu.add_screen(welcome_screen);
   AppMenu::menu.add_screen(startStopScreen);
   
   AppMenu::menu.add_screen(timerDelayMinScreen);
   AppMenu::menu.add_screen(timerDelayMaxScreen);
-  AppMenu::menu.add_screen(gCalibrationViewScreen);
   AppMenu::menu.add_screen(gCalibrationSetupScreen);
 
   AppMenu::welcome_line1.attach_function(1, AppLogic::startBuzzer);
@@ -87,9 +81,6 @@ void AppMenu::setupMenu() {
 
   AppMenu::timerDelayMaxLine1.attach_function(1, AppLogic::decMaxDelay);
   AppMenu::timerDelayMaxLine1.attach_function(2, AppLogic::incMaxDelay);
-
-  AppMenu::gCalibrationViewLine1.attach_function(1, AppLogic::decBrowseCalibration);
-  AppMenu::gCalibrationViewLine1.attach_function(2, AppLogic::incBrowseCalibration);
 
   AppMenu::gCalibrationSetupLine1.attach_function(1, AppLogic::toggleCalibration);
   AppMenu::gCalibrationSetupLine1.attach_function(2, AppLogic::toggleCalibration);

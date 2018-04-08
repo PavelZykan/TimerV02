@@ -23,7 +23,7 @@ class GForceCalibration {
   public:
     GForceCalibration(int xpin, int ypin, int zpin);
     void setup();
-    void takeSample();
+    void takeSample(unsigned short nSamp);
     void calibrate();
     
   private:

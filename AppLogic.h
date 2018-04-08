@@ -24,17 +24,13 @@ class AppLogic {
     static bool calibrationRunning;
     static char* calibrationVarLabel;
     static unsigned short calibrationVarIdx;
-    static unsigned short calibrationVarValue;
-
+    
     static void setup();
     static void loop();
     
   private:
     static void readGforces();
-    static void incBrowseCalibration();
-    static void decBrowseCalibration();
     static void toggleCalibration();
-    static void calibrationIteration();
     static void startCountdown();
     static void incMinDelay();
     static void decMinDelay();
@@ -46,7 +42,7 @@ class AppLogic {
     static void checkBuzzerStop();
     static void stopBuzzer();
     static void updateCalibrationVal();
-    static void setupCalibrationMessage(bool calibrationRunning);
+    static void setupCalibrationMessage(bool capturing, bool calibrating);
     static GForceCalibration forceCalibration;
 };
 
